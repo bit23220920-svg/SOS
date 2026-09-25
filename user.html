@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G-Force Citizen SOS App</title>
+  <script src="/socket.io/socket.io.js"></script>
+
+  <style>
+    body { font-family: Arial, sans-serif; background: #121212; color: white; text-align: center; padding: 20px; }
+    .card { background: #1e1e1e; padding: 20px; border-radius: 12px; max-width: 400px; margin: auto; }
+    input { width: 90%; padding: 10px; margin: 8px 0; border-radius: 6px; border: 1px solid #333; background: #2a2a2a; color: white; }
+    
+    .sos-container { display: flex; justify-content: center; margin: 30px 0; }
+    .sos-btn {
+      position: relative; width: 190px; height: 190px; border-radius: 50%;
+      background: #e63946; color: white; font-size: 20px; font-weight: bold;
+      border: none; cursor: pointer; user-select: none;
+      box-shadow: 0 0 30px rgba(230, 57, 70, 0.6); overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sos-progress { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: #900c3f; transition: height 0.1s linear; pointer-events: none; }
+    .sos-label { z-index: 2; pointer-events: none; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>📱 G-Force Mobile SOS</h2>
+    <p>Press & Hold for 2 seconds to alert G-Force dispatchers.</p>
+
+    <input type="text" id="citizenName" value="Sarah Jenkins">
+    <input type="text" id="citizenPhone" value="+260 97 1234567">
+
+    <div class="sos-container">
+      <button class="sos-btn" id="sosButton">
+        <div class="sos-progress" id="sosProgress"></div>
+        <span class="sos-label" id="sosLabel">HOLD 2s<br>FOR SOS</span>
+      </button>
+    </div>
+
+    <p id="status" style="color: #aaa; font-weight: bold;">Status: Standby</p>
+  </div>
+
+  <script>
+    const socket = io();
+    let holdTimer, progressInterval, watchId;
+    let holdDuration = 2000, holdProgress = 0;
+    let userIp = 'Detecting...';
+
+    fetch('/api/get-ip').then(res => res.json()).then(data => { userIp = data.ip; });
+
+    const btn = document.getElementById('sosButton');
+    const progress = document.getElementById('sosProgress');
+    const label = document.getElementById('sosLabel');
+    const status = document.getElementById('status');
+
+    btn.addEventListener('mousedown', startHold);
+    btn.addEventListener('touchstart', (e) => { e.preventDefault(); startHold(); });
+    window.addEventListener('mouseup', cancelHold);
+    window.addEventListener('touchend', cancelHold);
+
+    function startHold() {
+      holdProgress = 0; progress.style.height = '0%';
+      label.innerText = "HOLDING...";
+      status.innerText = "Keep holding...";
+
+      progressInterval = setInterval(() => {
+        holdProgress += 50;
+        progress.style.height = (holdProgress / holdDuration) * 100 + '%';
+      }, 50);
+
+      holdTimer = setTimeout(() => {
+        clearInterval(progressInterval);
+        progress.style.height = '100%';
+        label.innerText = "ACTIVATED!";
+        sendSOSTrigger();
+      }, holdDuration);
+    }
+
+    function cancelHold() {
+      if (holdTimer) {
+        clearTimeout(holdTimer); clearInterval(progressInterval);
+        holdTimer = null; progress.style.height = '0%';
+        if (label.innerText !== "ACTIVATED!") {
+          label.innerHTML = "HOLD 2s<br>FOR SOS";
+          status.innerText = "Status: Cancelled";
+        }
+      }
+    }
+
+    function sendSOSTrigger() {
+      status.innerText = "Fetching GPS location...";
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+          const payload = {
+            userId: 'CITIZEN-' + Math.floor(1000 + Math.random() * 9000),
+            name: document.getElementById('citizenName').value,
+            phone: document.getElementById('citizenPhone').value,
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy, // Precision in meters
+            ip: userIp,
+            timestamp: new Date().toLocaleTimeString()
+          };
+
+          socket.emit('TRIGGER_SOS', payload);
+          status.innerHTML = '<span style="color:#4caf50;">🚨 SOS SENT! G-Force Dispatched.</span>';
+
+          if (!watchId) {
+            watchId = navigator.geolocation.watchPosition((livePos) => {
+              socket.emit('UPDATE_LOCATION', {
+                userId: payload.userId,
+                lat: livePos.coords.latitude,
+                lng: livePos.coords.longitude
+              });
+            });
+          }
+        }, err => alert('Allow Location permissions to send SOS.'));
+      }
+    }
+  </script>
+</body>
+</html>

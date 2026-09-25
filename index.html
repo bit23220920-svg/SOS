@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G-Force Online SOS System Demo</title>
+  
+  <!-- Leaflet CSS for Live Mapping -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f4f4f9; }
+    .container { display: flex; gap: 20px; flex-wrap: wrap; }
+    .panel { flex: 1; min-width: 320px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    
+    /* Citizen App Styling */
+    .sos-btn { 
+      width: 100%; height: 180px; border-radius: 50%; border: none; 
+      background: #e63946; color: white; font-size: 28px; font-weight: bold; 
+      cursor: pointer; transition: transform 0.1s, background 0.3s;
+      box-shadow: 0 0 20px rgba(230, 57, 70, 0.4);
+    }
+    .sos-btn:active { transform: scale(0.95); background: #b71c1c; }
+    
+    /* Dashboard Styling */
+    #map { height: 350px; width: 100%; border-radius: 8px; margin-top: 15px; }
+    .alert-box { background: #ffebee; border-left: 5px solid #d32f2f; padding: 10px; margin-top: 10px; }
+    .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+    .active-alert { background: #ffcdd2; color: #b71c1c; }
+  </style>
+</head>
+<body>
+
+  <h1>G-Force Security Platform Demo</h1>
+  
+  <div class="container">
+    
+    <!-- CITIZEN MOBILE APP SIMULATION -->
+    <div class="panel">
+      <h2>📱 Citizen Mobile View</h2>
+      <p>Simulates a user pressing SOS on their smartphone.</p>
+      
+      <div style="margin-bottom: 15px;">
+        <label>Citizen Name:</label><br>
+        <input type="text" id="citizenName" value="Sarah Jenkins" style="width: 95%; padding: 8px; margin-top: 5px;">
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <label>Phone Number:</label><br>
+        <input type="text" id="citizenPhone" value="+1 (555) 019-2834" style="width: 95%; padding: 8px; margin-top: 5px;">
+      </div>
+
+      <button class="sos-btn" onclick="triggerSOS()">PRESS FOR SOS</button>
+      <p id="appStatus" style="text-align: center; color: #666; margin-top: 15px;">Status: Ready</p>
+    </div>
+
+    <!-- G-FORCE CONTROL ROOM DASHBOARD -->
+    <div class="panel">
+      <h2>🛡️ G-Force Control Room</h2>
+      <p>Live dispatcher view receiving incoming emergencies.</p>
+      
+      <div id="alertContainer">
+        <div class="alert-box">Waiting for emergency triggers...</div>
+      </div>
+
+      <div id="map"></div>
+    </div>
+
+  </div>
+
+  <script>
+    const socket = io();
+    let map, marker, watchId;
+    let userIp = 'Detecting...';
+
+    // Initialize Map centered on a default view
+    map = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // Fetch IP Address on load
+    fetch('/api/get-ip')
+      .then(res => res.json())
+      .then(data => { userIp = data.ip; });
+
+    // --- CITIZEN FUNCTIONALITY ---
+    function triggerSOS() {
+      const name = document.getElementById('citizenName').value;
+      const phone = document.getElementById('citizenPhone').value;
+      document.getElementById('appStatus').innerText = 'Status: Fetching GPS & Triggering SOS...';
+
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+          const payload = {
+            userId: 'USER-' + Math.floor(1000 + Math.random() * 9000),
+            name: name,
+            phone: phone,
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            ip: userIp,
+            timestamp: new Date().toLocaleTimeString()
+          };
+
+          // Emit alert to backend
+          socket.emit('TRIGGER_SOS', payload);
+          document.getElementById('appStatus').innerHTML = '<span style="color:red; font-weight:bold;">🚨 SOS ACTIVE - Sending Live Location</span>';
+
+          // Start continuous background GPS streaming
+          if (!watchId) {
+            watchId = navigator.geolocation.watchPosition((livePos) => {
+              socket.emit('UPDATE_LOCATION', {
+                userId: payload.userId,
+                lat: livePos.coords.latitude,
+                lng: livePos.coords.longitude
+              });
+            });
+          }
+        }, (err) => {
+          alert('Failed to get GPS location. Please allow browser location permissions.');
+        }, { enableHighAccuracy: true });
+      }
+    }
+
+    // --- CONTROL ROOM DISPATCHER FUNCTIONALITY ---
+    socket.on('NEW_DISPATCH_ALERT', (data) => {
+      // Sound effect alarm alert
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+      osc.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.5);
+
+      // Render alert detail box
+      document.getElementById('alertContainer').innerHTML = `
+        <div class="alert-box">
+          <span class="status-badge active-alert">HIGH PRIORITY EMERGENCY</span>
+          <p><strong>Name:</strong> ${data.name}</p>
+          <p><strong>Phone:</strong> ${data.phone}</p>
+          <p><strong>IP Address:</strong> ${data.ip}</p>
+          <p><strong>Coordinates:</strong> ${data.lat.toFixed(5)}, ${data.lng.toFixed(5)}</p>
+          <p><strong>Time:</strong> ${data.timestamp}</p>
+        </div>
+      `;
+
+      // Update Map View
+      const coords = [data.lat, data.lng];
+      map.setView(coords, 16);
+
+      if (marker) map.removeLayer(marker);
+      marker = L.marker(coords).addTo(map)
+        .bindPopup(`<b>EMERGENCY: ${data.name}</b><br>${data.phone}`).openPopup();
+    });
+
+    // Update pin dynamically as user moves
+    socket.on('LOCATION_UPDATED', (data) => {
+      if (marker) {
+        const newCoords = [data.lat, data.lng];
+        marker.setLatLng(newCoords);
+        map.panTo(newCoords);
+      }
+    });
+  </script>
+</body>
+</html>ss

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G-Force Security Admin Command Center</title>
+
+  <!-- Leaflet Maps CSS/JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #0f172a; color: white; }
+    .navbar { background: #1e293b; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; }
+    .layout { display: flex; height: calc(100vh - 65px); }
+
+    /* Left Sidebar: Data Pinpoint Info */
+    .sidebar { width: 380px; background: #1e293b; padding: 20px; overflow-y: auto; border-right: 1px solid #334155; }
+    .alert-card { background: #7f1d1d; border: 2px solid #ef4444; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+    .info-group { margin-bottom: 10px; font-size: 14px; }
+    .info-group label { color: #94a3b8; font-size: 12px; text-transform: uppercase; display: block; }
+    .info-group span { font-weight: bold; font-size: 15px; }
+
+    /* Right Main View: Full Map */
+    #map { flex: 1; height: 100%; }
+  </style>
+</head>
+<body>
+
+  <div class="navbar">
+    <h2>🛡️ G-Force Control Room Dispatch Center</h2>
+    <span style="color: #22c55e; font-weight: bold;">● SYSTEM LIVE & MONITORING</span>
+  </div>
+
+  <div class="layout">
+    
+    <!-- LEFT SIDEBAR: PINPOINT INFORMATION -->
+    <div class="sidebar">
+      <h3>Active Emergency Feed</h3>
+      <div id="dispatchDetails">
+        <p style="color: #64748b;">No active emergencies. Waiting for incoming SOS signals...</p>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDE: LIVE MAP -->
+    <div id="map"></div>
+
+  </div>
+
+  <script>
+    const socket = io();
+    let map, marker, accuracyCircle;
+
+    // Initialize Map with dark tiles
+    map = L.map('map').setView([-15.4167, 28.2833], 12); // Default Lusaka
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // Listen for incoming Citizen SOS
+    socket.on('NEW_DISPATCH_ALERT', (data) => {
+      // Play alarm siren
+      const audio = new Audio('https://media.geeksforgeeks.org/wp-content/uploads/20190531135120/beep.mp3');
+      audio.play();
+
+      // Render all pinpoint information in the admin panel
+      document.getElementById('dispatchDetails').innerHTML = `
+        <div class="alert-card">
+          <h3 style="margin-top:0; color:#fca5a5;">🚨 CRITICAL SOS ALERT</h3>
+          
+          <div class="info-group">
+            <label>Citizen Name</label>
+            <span>${data.name}</span>
+          </div>
+
+          <div class="info-group">
+            <label>Phone Number</label>
+            <span>${data.phone}</span>
+          </div>
+
+          <div class="info-group">
+            <label>Device IP Address</label>
+            <span>${data.ip}</span>
+          </div>
+
+          <div class="info-group">
+            <label>Exact Coordinates</label>
+            <span>${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}</span>
+          </div>
+
+          <div class="info-group">
+            <label>GPS Location Accuracy</label>
+            <span>Accurate within ~${Math.round(data.accuracy || 10)} meters</span>
+          </div>
+
+          <div class="info-group">
+            <label>Time Triggered</label>
+            <span>${data.timestamp}</span>
+          </div>
+
+          <button onclick="map.panTo([${data.lat}, ${data.lng}])" style="width:100%; padding:10px; background:#ef4444; border:none; color:white; font-weight:bold; border-radius:4px; cursor:pointer; margin-top:10px;">
+            RE-CENTER ON USER
+          </button>
+        </div>
+      `;
+
+      // Draw map pinpoint
+      const coords = [data.lat, data.lng];
+      map.setView(coords, 17); // Zoom close to street level
+
+      if (marker) map.removeLayer(marker);
+      if (accuracyCircle) map.removeLayer(accuracyCircle);
+
+      // Create pin
+      marker = L.marker(coords).addTo(map)
+        .bindPopup(`<b>EMERGENCY: ${data.name}</b><br>Phone: ${data.phone}`).openPopup();
+
+      // Create GPS accuracy blue ring around the user
+      accuracyCircle = L.circle(coords, {
+        color: '#3b82f6',
+        fillColor: '#93c5fd',
+        fillOpacity: 0.3,
+        radius: data.accuracy || 15
+      }).addTo(map);
+    });
+
+    // Update pin if citizen is moving
+    socket.on('LOCATION_UPDATED', (data) => {
+      if (marker) {
+        const newCoords = [data.lat, data.lng];
+        marker.setLatLng(newCoords);
+        if (accuracyCircle) accuracyCircle.setLatLng(newCoords);
+        map.panTo(newCoords);
+      }
+    });
+  </script>
+</body>
+</html>
