@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>G-Force Online SOS System Demo</title>
+  <title>G-Force SOS</title>
   
   <!-- Leaflet CSS for Live Mapping -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -32,6 +32,12 @@
   </style>
 </head>
 <body>
+
+  <p style="text-align:center; margin: 12px 0;">
+    <a href="/user">Open User SOS Window</a>
+    &nbsp; | &nbsp;
+    <a href="/admin">Open Admin Dashboard</a>
+  </p>
 
   <h1>G-Force Security Platform Demo</h1>
   
@@ -75,8 +81,8 @@
     let map, marker, watchId;
     let userIp = 'Detecting...';
 
-    // Initialize Map centered on a default view
-    map = L.map('map').setView([0, 0], 2);
+    // Initialize Map centered on Zambia
+    map = L.map('map').setView([-13.1339, 27.8493], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     // Fetch IP Address on load

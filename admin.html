@@ -52,8 +52,10 @@
     const socket = io();
     let map, marker, accuracyCircle;
 
-    // Initialize Map with dark tiles
-    map = L.map('map').setView([-15.4167, 28.2833], 12); // Default Lusaka
+    socket.emit('JOIN_ADMIN');
+
+    // Start with Zambia visible until a user's live location arrives.
+    map = L.map('map').setView([-13.1339, 27.8493], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     // Listen for incoming Citizen SOS
