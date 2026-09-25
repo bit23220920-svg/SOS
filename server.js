@@ -9,6 +9,11 @@ const io = new Server(server);
 
 app.use(express.json());
 
+// Main landing page
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // User/Citizen App Page
 app.get('/user', (req, res) => {
   res.sendFile(path.join(__dirname, 'user.html'));
@@ -42,8 +47,10 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(3000, () => {
+const port = process.env.PORT || 3000;
+
+server.listen(port, () => {
   console.log('Server running!');
-  console.log('📱 Citizen View: http://localhost:3000/user');
-  console.log('🛡️ G-Force Admin: http://localhost:3000/admin');
+  console.log(`📱 Citizen View: http://localhost:${port}/user`);
+  console.log(`🛡️ G-Force Admin: http://localhost:${port}/admin`);
 });
