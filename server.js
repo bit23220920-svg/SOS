@@ -34,16 +34,20 @@ app.get('/api/get-ip', (req, res) => {
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
 
+  // Admin dashboards join this room to receive private dispatch updates.
+  socket.on('JOIN_ADMIN', () => {
+    socket.join('admins');
+  });
+
   // When citizen triggers SOS
   socket.on('TRIGGER_SOS', (data) => {
     console.log('🚨 SOS RECEIVED FROM USER:', data.name);
-    // Send alert ONLY to G-Force Admin Dashboard
-    io.emit('NEW_DISPATCH_ALERT', data);
+    io.to('admins').emit('NEW_DISPATCH_ALERT', data);
   });
 
   // Streaming real-time GPS coordinates
   socket.on('UPDATE_LOCATION', (data) => {
-    io.emit('LOCATION_UPDATED', data);
+    io.to('admins').emit('LOCATION_UPDATED', data);
   });
 });
 
