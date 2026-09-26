@@ -9,6 +9,9 @@
   <style>
     body { font-family: Arial, sans-serif; background: #121212; color: white; text-align: center; padding: 20px; }
     .card { background: #1e1e1e; padding: 20px; border-radius: 12px; max-width: 400px; margin: auto; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .card-header h2 { font-size: 20px; }
+    .logout { color: #b8c7bd; font-size: 13px; }
     input { width: 90%; padding: 10px; margin: 8px 0; border-radius: 6px; border: 1px solid #333; background: #2a2a2a; color: white; }
     
     .sos-container { display: flex; justify-content: center; margin: 30px 0; }
@@ -19,6 +22,7 @@
       box-shadow: 0 0 30px rgba(230, 57, 70, 0.6); overflow: hidden;
       display: flex; align-items: center; justify-content: center;
     }
+    .sos-btn:disabled { cursor: wait; opacity: .65; }
     .sos-progress { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: #900c3f; transition: height 0.1s linear; pointer-events: none; }
     .sos-label { z-index: 2; pointer-events: none; }
   </style>
@@ -26,14 +30,17 @@
 <body>
 
   <div class="card">
-    <h2>📱 G-Force Mobile SOS</h2>
+    <div class="card-header">
+      <h2>G-Force Mobile SOS</h2>
+      <a class="logout" href="/logout">Log out</a>
+    </div>
     <p>Press & Hold for 2 seconds to alert G-Force dispatchers.</p>
 
     <input type="text" id="citizenName" value="Sarah Jenkins">
     <input type="text" id="citizenPhone" value="+260 97 1234567">
 
     <div class="sos-container">
-      <button class="sos-btn" id="sosButton">
+      <button class="sos-btn" id="sosButton" disabled>
         <div class="sos-progress" id="sosProgress"></div>
         <span class="sos-label" id="sosLabel">HOLD 2s<br>FOR SOS</span>
       </button>
@@ -54,6 +61,19 @@
     const progress = document.getElementById('sosProgress');
     const label = document.getElementById('sosLabel');
     const status = document.getElementById('status');
+    btn.disabled = true;
+
+    fetch('/api/session')
+      .then((res) => {
+        if (!res.ok) throw new Error('Please sign in again.');
+        return res.json();
+      })
+      .then((account) => {
+        document.getElementById('citizenName').value = account.name;
+        document.getElementById('citizenPhone').value = account.phone;
+        btn.disabled = false;
+      })
+      .catch(() => { window.location.assign('/'); });
 
     btn.addEventListener('mousedown', startHold);
     btn.addEventListener('touchstart', (e) => { e.preventDefault(); startHold(); });

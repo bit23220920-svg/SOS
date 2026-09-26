@@ -13,6 +13,8 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #0f172a; color: white; }
     .navbar { background: #1e293b; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; }
+    .navbar h2 { margin: 0; font-size: 20px; }
+    .navbar a { color: #cbd5e1; font-size: 13px; }
     .layout { display: flex; height: calc(100vh - 65px); }
 
     /* Left Sidebar: Data Pinpoint Info */
@@ -29,8 +31,11 @@
 <body>
 
   <div class="navbar">
-    <h2>🛡️ G-Force Control Room Dispatch Center</h2>
-    <span style="color: #22c55e; font-weight: bold;">● SYSTEM LIVE & MONITORING</span>
+    <h2>G-Force Control Room</h2>
+    <div style="display:flex; align-items:center; gap:18px;">
+      <span style="color: #22c55e; font-weight: bold;">● SYSTEM LIVE & MONITORING</span>
+      <a href="/logout">Log out</a>
+    </div>
   </div>
 
   <div class="layout">
@@ -54,12 +59,21 @@
 
     socket.emit('JOIN_ADMIN');
 
+    function escapeHtml(value) {
+      const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+      return String(value).replace(/[&<>"']/g, (character) => entities[character]);
+    }
+
     // Start with Zambia visible until a user's live location arrives.
     map = L.map('map').setView([-13.1339, 27.8493], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     // Listen for incoming Citizen SOS
     socket.on('NEW_DISPATCH_ALERT', (data) => {
+      const latitude = Number(data.lat);
+      const longitude = Number(data.lng);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+
       // Play alarm siren
       const audio = new Audio('https://media.geeksforgeeks.org/wp-content/uploads/20190531135120/beep.mp3');
       audio.play();
@@ -71,42 +85,42 @@
           
           <div class="info-group">
             <label>Citizen Name</label>
-            <span>${data.name}</span>
+            <span>${escapeHtml(data.name)}</span>
           </div>
 
           <div class="info-group">
             <label>Phone Number</label>
-            <span>${data.phone}</span>
+            <span>${escapeHtml(data.phone)}</span>
           </div>
 
           <div class="info-group">
             <label>Device IP Address</label>
-            <span>${data.ip}</span>
+            <span>${escapeHtml(data.ip)}</span>
           </div>
 
           <div class="info-group">
             <label>Exact Coordinates</label>
-            <span>${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}</span>
+            <span>${latitude.toFixed(6)}, ${longitude.toFixed(6)}</span>
           </div>
 
           <div class="info-group">
             <label>GPS Location Accuracy</label>
-            <span>Accurate within ~${Math.round(data.accuracy || 10)} meters</span>
+            <span>Accurate within ~${Math.round(Number(data.accuracy) || 10)} meters</span>
           </div>
 
           <div class="info-group">
             <label>Time Triggered</label>
-            <span>${data.timestamp}</span>
+            <span>${escapeHtml(data.timestamp)}</span>
           </div>
 
-          <button onclick="map.panTo([${data.lat}, ${data.lng}])" style="width:100%; padding:10px; background:#ef4444; border:none; color:white; font-weight:bold; border-radius:4px; cursor:pointer; margin-top:10px;">
+          <button onclick="map.panTo([${latitude}, ${longitude}])" style="width:100%; padding:10px; background:#ef4444; border:none; color:white; font-weight:bold; border-radius:4px; cursor:pointer; margin-top:10px;">
             RE-CENTER ON USER
           </button>
         </div>
       `;
 
       // Draw map pinpoint
-      const coords = [data.lat, data.lng];
+      const coords = [latitude, longitude];
       map.setView(coords, 17); // Zoom close to street level
 
       if (marker) map.removeLayer(marker);
@@ -128,7 +142,10 @@
     // Update pin if citizen is moving
     socket.on('LOCATION_UPDATED', (data) => {
       if (marker) {
-        const newCoords = [data.lat, data.lng];
+        const latitude = Number(data.lat);
+        const longitude = Number(data.lng);
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+        const newCoords = [latitude, longitude];
         marker.setLatLng(newCoords);
         if (accuracyCircle) accuracyCircle.setLatLng(newCoords);
         map.panTo(newCoords);

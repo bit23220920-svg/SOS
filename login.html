@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#152521">
+  <title>G-Force SOS | Sign in</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #18231f;
+      --muted: #64716b;
+      --paper: #f4f5ef;
+      --panel: #ffffff;
+      --forest: #173a31;
+      --lime: #d4f36a;
+      --line: #dce2dc;
+      --danger: #bd3434;
+    }
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: "Segoe UI", sans-serif;
+    }
+    .login-shell {
+      width: min(880px, 100%);
+      min-height: 500px;
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      overflow: hidden;
+      background: var(--panel);
+      box-shadow: 0 24px 70px rgba(22, 48, 39, 0.14);
+      animation: arrive 420ms ease-out both;
+    }
+    .brand-panel {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 36px;
+      color: white;
+      background-color: var(--forest);
+      background-image: repeating-linear-gradient(135deg, transparent 0 22px, rgba(255,255,255,.035) 22px 23px);
+    }
+    .brand-mark { display: flex; align-items: center; gap: 11px; font-weight: 700; letter-spacing: 0; }
+    .brand-icon {
+      width: 36px; height: 36px; display: grid; place-items: center;
+      color: var(--forest); background: var(--lime); font-size: 20px; font-weight: 900;
+    }
+    .brand-copy { max-width: 300px; }
+    .brand-copy p { margin: 0 0 12px; color: var(--lime); font-size: 12px; font-weight: 700; text-transform: uppercase; }
+    .brand-copy h1 { margin: 0; font: 500 38px/1.08 Georgia, serif; }
+    .brand-copy span { display: block; margin-top: 16px; color: #d4ded8; line-height: 1.6; }
+    .brand-foot { color: #adc0b7; font-size: 12px; }
+    .form-panel { padding: 52px 58px; align-self: center; }
+    .form-panel h2 { margin: 0; font: 500 28px/1.2 Georgia, serif; }
+    .intro { margin: 9px 0 28px; color: var(--muted); font-size: 14px; }
+    .roles { display: grid; grid-template-columns: 1fr 1fr; padding: 4px; margin-bottom: 24px; background: #eef1ec; }
+    .role-button { min-height: 42px; border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 650; cursor: pointer; }
+    .role-button[aria-pressed="true"] { color: var(--ink); background: white; box-shadow: 0 1px 4px rgba(20, 40, 31, .13); }
+    .field { margin-bottom: 17px; }
+    label { display: block; margin-bottom: 7px; font-size: 13px; font-weight: 650; }
+    input { width: 100%; height: 45px; padding: 0 12px; border: 1px solid var(--line); border-radius: 0; background: white; color: var(--ink); font: inherit; }
+    input:focus { outline: 2px solid #659b79; outline-offset: 1px; }
+    .submit { width: 100%; min-height: 47px; margin-top: 5px; border: 0; color: white; background: var(--forest); font: inherit; font-weight: 700; cursor: pointer; }
+    .submit:hover { background: #245346; }
+    .message { min-height: 20px; margin: 12px 0 0; color: var(--danger); font-size: 13px; }
+    [hidden] { display: none !important; }
+    @keyframes arrive { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 650px) {
+      body { padding: 0; }
+      .login-shell { min-height: 100vh; grid-template-columns: 1fr; }
+      .brand-panel { min-height: 210px; padding: 24px; }
+      .brand-copy h1 { font-size: 30px; }
+      .brand-copy span, .brand-foot { display: none; }
+      .form-panel { width: 100%; padding: 34px 25px 44px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <main class="login-shell">
+    <section class="brand-panel" aria-label="G-Force SOS">
+      <div class="brand-mark"><span class="brand-icon" aria-hidden="true">G</span> G-FORCE SOS</div>
+      <div class="brand-copy">
+        <p>Safety network</p>
+        <h1>Help is closer than you think.</h1>
+        <span>Sign in to send an emergency alert or monitor incoming SOS locations.</span>
+      </div>
+      <div class="brand-foot">G-Force Security Platform</div>
+    </section>
+
+    <section class="form-panel">
+      <h2>Welcome back</h2>
+      <p class="intro">Choose how you want to access the platform.</p>
+      <div class="roles" aria-label="Account type">
+        <button class="role-button" type="button" data-role="user" aria-pressed="true">User</button>
+        <button class="role-button" type="button" data-role="admin" aria-pressed="false">Admin</button>
+      </div>
+
+      <form id="loginForm">
+        <div id="userFields">
+          <div class="field">
+            <label for="name">Your name</label>
+            <input id="name" name="name" autocomplete="name" placeholder="e.g. Sarah Jenkins" required>
+          </div>
+          <div class="field">
+            <label for="phone">Phone number</label>
+            <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="e.g. +260 97 1234567" required>
+          </div>
+        </div>
+        <div id="adminFields" hidden>
+          <div class="field">
+            <label for="username">Admin username</label>
+            <input id="username" name="username" autocomplete="username" value="admin">
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="current-password">
+          </div>
+        </div>
+        <button class="submit" type="submit">Continue as user</button>
+        <p class="message" id="message" role="alert" aria-live="polite"></p>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    let selectedRole = 'user';
+    const form = document.getElementById('loginForm');
+    const userFields = document.getElementById('userFields');
+    const adminFields = document.getElementById('adminFields');
+    const message = document.getElementById('message');
+    const submit = form.querySelector('.submit');
+
+    document.querySelectorAll('.role-button').forEach((button) => {
+      button.addEventListener('click', () => {
+        selectedRole = button.dataset.role;
+        document.querySelectorAll('.role-button').forEach((option) => {
+          option.setAttribute('aria-pressed', String(option === button));
+        });
+        userFields.hidden = selectedRole !== 'user';
+        adminFields.hidden = selectedRole !== 'admin';
+        document.getElementById('name').required = selectedRole === 'user';
+        document.getElementById('phone').required = selectedRole === 'user';
+        document.getElementById('password').required = selectedRole === 'admin';
+        submit.textContent = `Continue as ${selectedRole}`;
+        message.textContent = '';
+      });
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      message.textContent = '';
+      submit.disabled = true;
+      try {
+        const formData = new FormData(form);
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            role: selectedRole,
+            name: formData.get('name'),
+            phone: formData.get('phone'),
+            username: formData.get('username'),
+            password: formData.get('password')
+          })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Unable to sign in.');
+        window.location.assign(result.redirect);
+      } catch (error) {
+        message.textContent = error.message;
+      } finally {
+        submit.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
