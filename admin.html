@@ -65,8 +65,12 @@
     }
 
     // Start with Zambia visible until a user's live location arrives.
-    map = L.map('map').setView([-13.1339, 27.8493], 6);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    map = L.map('map', { maxZoom: 19 }).setView([-13.1339, 27.8493], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxNativeZoom: 19,
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
     // Listen for incoming Citizen SOS
     socket.on('NEW_DISPATCH_ALERT', (data) => {
@@ -100,12 +104,12 @@
 
           <div class="info-group">
             <label>Exact Coordinates</label>
-            <span>${latitude.toFixed(6)}, ${longitude.toFixed(6)}</span>
+            <span id="currentCoordinates">${latitude.toFixed(6)}, ${longitude.toFixed(6)}</span>
           </div>
 
           <div class="info-group">
             <label>GPS Location Accuracy</label>
-            <span>Accurate within ~${Math.round(Number(data.accuracy) || 10)} meters</span>
+            <span id="currentAccuracy">±${Math.round(Number(data.accuracy) || 0)} meters</span>
           </div>
 
           <div class="info-group">
@@ -121,21 +125,21 @@
 
       // Draw map pinpoint
       const coords = [latitude, longitude];
-      map.setView(coords, 17); // Zoom close to street level
+      map.setView(coords, 19);
 
       if (marker) map.removeLayer(marker);
       if (accuracyCircle) map.removeLayer(accuracyCircle);
 
       // Create pin
       marker = L.marker(coords).addTo(map)
-        .bindPopup(`<b>EMERGENCY: ${data.name}</b><br>Phone: ${data.phone}`).openPopup();
+        .bindPopup(`<b>EMERGENCY: ${escapeHtml(data.name)}</b><br>Phone: ${escapeHtml(data.phone)}`).openPopup();
 
       // Create GPS accuracy blue ring around the user
       accuracyCircle = L.circle(coords, {
         color: '#3b82f6',
         fillColor: '#93c5fd',
         fillOpacity: 0.3,
-        radius: data.accuracy || 15
+        radius: Number(data.accuracy) > 0 ? Number(data.accuracy) : 15
       }).addTo(map);
     });
 
@@ -147,6 +151,12 @@
         if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
         const newCoords = [latitude, longitude];
         marker.setLatLng(newCoords);
+        document.getElementById('currentCoordinates').textContent = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+        const accuracy = Number(data.accuracy);
+        if (Number.isFinite(accuracy) && accuracy > 0) {
+          document.getElementById('currentAccuracy').textContent = `±${Math.round(accuracy)} meters`;
+          if (accuracyCircle) accuracyCircle.setRadius(accuracy);
+        }
         if (accuracyCircle) accuracyCircle.setLatLng(newCoords);
         map.panTo(newCoords);
       }

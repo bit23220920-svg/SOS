@@ -54,6 +54,7 @@
     let holdTimer, progressInterval, watchId;
     let holdDuration = 2000, holdProgress = 0;
     let userIp = 'Detecting...';
+    const gpsOptions = { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 };
 
     fetch('/api/get-ip').then(res => res.json()).then(data => { userIp = data.ip; });
 
@@ -111,6 +112,11 @@
 
     function sendSOSTrigger() {
       status.innerText = "Fetching GPS location...";
+      if (!navigator.geolocation) {
+        status.textContent = 'This device does not support location services.';
+        return;
+      }
+
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition((pos) => {
           const payload = {
@@ -132,11 +138,19 @@
               socket.emit('UPDATE_LOCATION', {
                 userId: payload.userId,
                 lat: livePos.coords.latitude,
-                lng: livePos.coords.longitude
+                lng: livePos.coords.longitude,
+                accuracy: livePos.coords.accuracy
               });
-            });
+            }, (err) => {
+              console.warn('Live location update failed:', err.message);
+            }, gpsOptions);
           }
-        }, err => alert('Allow Location permissions to send SOS.'));
+        }, (err) => {
+          status.textContent = err.code === err.PERMISSION_DENIED
+            ? 'Location permission is required to send SOS.'
+            : 'Could not get a fresh location. Check GPS and try again.';
+        }, gpsOptions);
+
       }
     }
   </script>
